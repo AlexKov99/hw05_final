@@ -1,5 +1,4 @@
 import shutil
-
 from http import HTTPStatus
 
 from django.contrib.auth import get_user_model
@@ -73,6 +72,7 @@ class PostFormsTest(TestCase):
         self.assertEqual(last_post.author, self.user)
         self.assertEqual(last_post.group, self.group)
         self.assertEqual(last_post.text, CONST_TEXT)
+        self.assertEqual(last_post.image, uploaded)
 
     def test_edit_post(self):
         """Валидная форма редактирует существующую запись"""
@@ -111,7 +111,7 @@ class PostFormsTest(TestCase):
         )
 
         form_data = {
-            'text': 'Тестовый комментарий',
+            'text': CONST_TEXT,
         }
         comments_count = Comment.objects.count()
         response = self.authorized_client.post(
@@ -123,5 +123,5 @@ class PostFormsTest(TestCase):
         self.assertEqual(response.status_code, HTTPStatus.FOUND)
         self.assertTrue(Comment.objects.filter(
             author=self.user,
-            text='Тестовый комментарий',
+            text=CONST_TEXT,
             post=post).exists())

@@ -258,7 +258,7 @@ class FollowTest(TestCase):
         self.authorized_client = Client()
         self.authorized_client.force_login(self.user_1)
 
-    def test_authorized_can_follow_and_unfollow(self):
+    def test_authorized_can_follow(self):
         count_follow_before_follow = Follow.objects.count()
         response = self.authorized_client.get(reverse(
             'posts:profile_follow', args={f'{self.user_2.username}'}))
@@ -266,24 +266,32 @@ class FollowTest(TestCase):
         self.assertRedirects(response, '/follow/')
         self.assertEqual(
             count_follow_after_follow, count_follow_before_follow + 1)
+        self.assertEqual(Follow.objects.filter(user=self.user_1,
+                                               author=self.user_2).exists(),
+                         True)
 
+    def test_authorized_can_unfollow(self):
+        response = self.authorized_client.get(reverse(
+            'posts:profile_follow', args={f'{self.user_2.username}'}))
         response = self.authorized_client.get(reverse(
             'posts:profile_unfollow', args={f'{self.user_2.username}'}))
-        self.assertRedirects(
-            response, '/follow/')
-        self.assertEqual(
-            count_follow_after_follow - 1, count_follow_before_follow)
+        self.assertRedirects(response, '/follow/')
+        self.assertEqual(Follow.objects.filter(user=self.user_1,
+                                               author=self.user_2).exists(),
+                         False)
 
-    def test_post_in_follow_and_not_in_unfollow(self):
+    def test_post_in_follow(self):
         response = self.authorized_client.get(reverse(
             'posts:follow_index'))
         count_before_follow = len(response.context.get('page_obj'))
-        Follow.objects.get_or_create(user=self.user_1, author=self.user_2)
+        Follow.objects.get_or_create(user=self.user_1,
+                                     author=self.user_2)
         response = self.authorized_client.get(reverse(
             'posts:follow_index'))
         count_after_follow = len(response.context.get('page_obj'))
         self.assertEqual(count_before_follow + 1, count_after_follow)
 
+    def test_post_in_unfollow(self):
         self.authorized_client.force_login(self.user_3)
         response = self.authorized_client.get(reverse(
             'posts:follow_index'))
@@ -295,6 +303,7 @@ class CacheTest(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        cache.clear()
         cls.user = User.objects.create_user(username='HasNoName')
         cls.group = Group.objects.create(
             title=CONST_GROUP_1,
@@ -311,11 +320,12 @@ class CacheTest(TestCase):
             text=CONST_TEXT,
             group=self.group
         )
-        cache.clear()
         response = self.authorized_client.get(reverse('posts:index'))
         posts_count = 1
         self.assertEqual(len(response.context.get('page_obj')), posts_count)
-        Post.objects.last().delete
+        Post.objects.last().delete()
         response = self.authorized_client.get(reverse('posts:index'))
         self.assertEqual(len(response.context.get('page_obj')),
                          posts_count)
+        cache.clear()
+        self.assertEqual(len(response.context.get('page_obj')), 0)
