@@ -7,7 +7,8 @@ from .utils import paginator
 
 
 def index(request):
-    posts = Post.objects.all()
+    posts = Post.objects.select_related(
+        'group')
     page_obj = paginator(request, posts)
     context = {
         'page_obj': page_obj,
@@ -61,7 +62,7 @@ def post_detail(request, post_id):
 
 @login_required
 def post_create(request):
-    form = PostForm(request.POST or None)
+    form = PostForm(request.POST or None, files=request.FILES or None)
     if form.is_valid():
         post_create = form.save(commit=False)
         post_create.author = request.user
@@ -79,7 +80,7 @@ def post_edit(request, post_id):
         return redirect('posts:post_detail', post_id=post_id)
     form = PostForm(instance=post,
                     data=request.POST or None,
-                    files=request.FILES or None,)
+                    files=request.FILES or None)
     if form.is_valid():
         form.save()
         return redirect('posts:post_detail', post_id=post_id)

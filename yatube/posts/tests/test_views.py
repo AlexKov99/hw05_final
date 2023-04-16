@@ -321,11 +321,10 @@ class CacheTest(TestCase):
             group=self.group
         )
         response = self.authorized_client.get(reverse('posts:index'))
-        posts_count = 1
-        self.assertEqual(len(response.context.get('page_obj')), posts_count)
+        cached_content = response.content
         Post.objects.last().delete()
         response = self.authorized_client.get(reverse('posts:index'))
-        self.assertEqual(len(response.context.get('page_obj')),
-                         posts_count)
+        self.assertEqual(response.content, cached_content)
         cache.clear()
-        self.assertEqual(len(response.context.get('page_obj')), 0)
+        response = self.authorized_client.get(reverse('posts:index'))
+        self.assertNotEqual(response.content, cached_content)

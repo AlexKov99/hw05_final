@@ -65,14 +65,16 @@ class PostFormsTest(TestCase):
             data=form_data,
         )
         last_post = Post.objects.order_by('-pub_date').last()
-        self.assertRedirects(response, reverse('posts:profile',
-                                               kwargs={'username': self.user}))
+        self.assertRedirects(
+            response,
+            reverse('posts:profile', kwargs={'username': self.user})
+        )
         self.assertEqual(Post.objects.count(), post_count + 1)
         self.assertEqual(response.status_code, HTTPStatus.FOUND)
         self.assertEqual(last_post.author, self.user)
         self.assertEqual(last_post.group, self.group)
         self.assertEqual(last_post.text, CONST_TEXT)
-        self.assertEqual(last_post.image, uploaded)
+        self.assertEqual(last_post.image, f'posts/{uploaded}')
 
     def test_edit_post(self):
         """Валидная форма редактирует существующую запись"""
